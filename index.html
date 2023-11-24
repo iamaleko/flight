@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="assets/favicon.svg">
+  <script>document.write(`<meta name="viewport" content="width=600, initial-scale=${Math.min(1, Math.round(window.screen.width / 600 * 1000) / 1000)}, user-scalable=no">`);</script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;400;600;700;800&amp;display=block" rel="stylesheet">
+  
+  <link rel="stylesheet" href="game.css?v=1">
+  <script src="game.js?v=1" type="module"></script>
+
+  <title>Flight</title>
+</head>
+<body class="nomenu nohud">
+  <canvas id="canvas"></canvas>
+  <main class="main">
+    <div class="hud">
+      <div class="hud__counters hud__counters--left">
+        <div id="score" data-text="DISTANCE">0</div>
+        <div id="collected" data-text="STARS">0 / 0</div>
+      </div>
+      <div class="hud__counters hud__counters--right">
+        <div id="speed" data-text="SPEED">0</div>
+        <div id="level" data-text="LEVEL">0</div>
+      </div>
+    </div>
+    <div class="menu">
+      <div class="content">
+        <div class="logo" data-before="FLIGH" data-after="" data-before-gameover="GAME O" data-after-gameover="ER"><div class="t"><div></div><div></div></div></div>
+        
+        <div id="results" class="results"></div>
+
+        <div class="howto">
+          <div class="keys">
+            <div class="key left"></div>
+            <div class="key down"></div>
+            <div class="key up"></div>
+            <div class="key right"></div>
+          </div>
+          Follow the stars,<br>you'll miss three of them<br>and that's it.
+        </div>
+
+        <button onclick="Game.start(); this.blur();" data-text="Play" data-text-gameover="Try again"></button>
+
+        <ul id="leaderboard"></ul>
+      </div>
+    </div>
+  </main>
+  <footer class="footer">
+    <span class="footer__copyright"><a href="https://github.com/iamaleko" target="_blank">@iamaleko</a> · 2023</span>
+  </footer>
+</body>
+</html>
