@@ -1,4 +1,4 @@
-export class Geometry {
+export default class Geometry {
 
   /**
    * Degrees to radians

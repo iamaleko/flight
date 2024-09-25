@@ -1,10 +1,12 @@
-import { World, Camera, Viewport, Light, Plane, Terrain, Star, Tooltip } from './world.js';
-import { Geometry } from "./geometry.js";
-import Animate from './animate.js';
+import Geometry from "@lib/geometry.js";
+import Animate from '@lib/animate.js';
+import { Camera, Viewport, Light, Plane, Terrain, Star, Tooltip, World } from '@lib/world.js';
+
+import '@css/game.css';
 
 class Game {
   static isModeling = false; // debug mode
-  static isStresstest = false; // debug mode
+  static isStresstest = false; // debug mode 
   static isProfile = false; // profile mode
   
   // world items
@@ -87,6 +89,7 @@ class Game {
     this.initWorldItems();
     this.initWorldLifecicle();
     this.initControls();
+
     this.setLevel(this.menuLevel, 0);
 
     if (this.isStresstest) {

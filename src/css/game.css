@@ -23,6 +23,9 @@ template {
 body.nocursor {
   cursor: none;
 }
+html:not(:hover) * {
+  transition: none !important;
+}
 
 /* world */
 
@@ -224,7 +227,7 @@ ul li:first-child:before {
   width: 20px;
   height: 20px;
   margin: 0 10px 0 -30px;
-  background-image: url(./assets/icons/crown.svg);
+  background-image: url('./../assets/icons/crown.svg');
   background-size: 20px;
   background-repeat: no-repeat;
   background-position: center;
@@ -252,15 +255,15 @@ ul li:nth-child(n + 2) {
   width: calc(45px * 3 + 5px * 2);
 }
 .left {
-  background-image: url(./assets/icons/left.svg);
+  background-image: url('./../assets/icons/left.svg');
   left: 0;
 }
 .right {
-  background-image: url(./assets/icons/right.svg);
+  background-image: url('./../assets/icons/right.svg');
   right: 0;
 }
 .down {
-  background-image: url(./assets/icons/left.svg);
+  background-image: url('./../assets/icons/left.svg');
   width: 30px;
   height: 40px;
   transform: rotate(-90deg) translate(-5px, -16px);
@@ -269,7 +272,7 @@ ul li:nth-child(n + 2) {
   opacity: 0.3;
 }
 .up {
-  background-image: url(./assets/icons/right.svg);
+  background-image: url('./../assets/icons/right.svg');
   width: 30px;
   height: 40px;
   transform: rotate(-90deg) translate(5px, -16px);

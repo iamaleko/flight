@@ -1,5 +1,5 @@
-import { Geometry } from "./geometry.js";
-import Markers from './markers.js';
+import Geometry from "@lib/geometry.js";
+import Markers from '@lib/markers.js';
 
 export class Point {
   constructor(x = 0, y = 0, z = 0) {
@@ -58,7 +58,7 @@ export class World extends Point {
   }
 }
 
-export class Object extends Point {
+export class GeometryObject extends Point {
   constructor(opts) {
     super(opts.x, opts.y, opts.z);
     
@@ -144,7 +144,7 @@ export class Polygon {
   }
 }
 
-export class Camera extends Object {
+export class Camera extends GeometryObject {
   constructor(world, opts) {
     super(opts);
     
@@ -503,7 +503,7 @@ export class Viewport {
   }
 }
 
-export class Sphere extends Object {
+export class Sphere extends GeometryObject {
   constructor(opts) {
     super(opts);
 
@@ -557,7 +557,7 @@ export class Sphere extends Object {
   }
 }
 
-export class Cube extends Object {
+export class Cube extends GeometryObject {
   constructor(opts) {
     super(opts);
 
@@ -668,7 +668,7 @@ export class Light extends Sphere {
   }
 }
 
-export class Terrain extends Object {
+export class Terrain extends GeometryObject {
   constructor(opts) {
     super(opts);
 
@@ -714,7 +714,7 @@ export class Terrain extends Object {
   }
 }
 
-export class Plane extends Object {
+export class Plane extends GeometryObject {
   constructor(opts) {
     super(opts);
 
@@ -774,7 +774,7 @@ export class Plane extends Object {
   }
 }
 
-export class Star extends Object {
+export class Star extends GeometryObject {
   constructor(opts) {
     super(opts);
 
@@ -825,7 +825,7 @@ export class Star extends Object {
   }
 }
 
-export class Tooltip extends Object {
+export class Tooltip extends GeometryObject {
   constructor(opts) {
     super(opts);
 

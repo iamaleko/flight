@@ -10,11 +10,11 @@ export default class Animate {
 
   #resolve;
 
-  constructor(callbackFn, duration, animationFn = this.#animationFn, fps = this.#fps) {
+  constructor(callbackFn, duration, animationFn, fps) {
     this.#callbackFn = callbackFn;
-    this.#animationFn = animationFn;
+    this.#animationFn = animationFn ?? this.#animationFn;
     this.#duration = duration;
-    this.#fps = fps;
+    this.#fps = fps ?? this.#fps;
   }
 
   start() {
