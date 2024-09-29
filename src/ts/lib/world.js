@@ -1,4 +1,4 @@
-import Geometry from "@lib/geometry.js";
+import Geometry from "@lib/geometry.ts";
 import Markers from '@lib/markers.js';
 
 export class Point {

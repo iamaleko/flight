@@ -1,4 +1,4 @@
-import Geometry from "@lib/geometry.js";
+import Geometry from "@lib/geometry.ts";
 import Animate from '@lib/animate.ts';
 import { Camera, Viewport, Light, Plane, Terrain, Star, Tooltip, World } from '@lib/world.js';
 
