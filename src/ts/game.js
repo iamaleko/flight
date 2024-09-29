@@ -1,5 +1,5 @@
 import Geometry from "@lib/geometry.js";
-import Animate from '@lib/animate.js';
+import Animate from '@lib/animate.ts';
 import { Camera, Viewport, Light, Plane, Terrain, Star, Tooltip, World } from '@lib/world.js';
 
 import '@css/game.css';
