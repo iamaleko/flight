@@ -14,7 +14,7 @@ export default class Mesh extends Point {
 
   polygons: Polygon[];
 
-  constructor(opts: Record<string, number>) {
+  constructor(opts: Record<string, any>) {
     super(opts.x, opts.y, opts.z);
 
     this.ax = opts.ax ?? 0;

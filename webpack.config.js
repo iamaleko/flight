@@ -6,7 +6,7 @@ const isProduction = process.env.NODE_ENV == 'production';
 
 const config = {
   entry: {
-    game: '/src/ts/game.js',
+    game: '/src/ts/Game.ts',
   },
   output: {
     path: path.resolve(__dirname, 'public'),

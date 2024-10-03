@@ -4,10 +4,30 @@ import { Camera, Viewport, World } from '@lib/World';
 import Tooltip from '@lib/meshes/Tooltip';
 import Star from '@lib/meshes/Star';
 import Light from '@lib/primitives/Light';
-import Terrain from '@lib/meshes/Terrain';
+import Point from '@lib/primitives/Point';
+import { default as Terrain, type AltitudeMap } from '@lib/meshes/Terrain';
 import Plane from '@lib/meshes/Plane';
 
 import '@css/game.css';
+
+declare global {
+  interface Window {
+    canvas: HTMLCanvasElement;
+    leaderboard: HTMLUListElement;
+    results: HTMLDivElement;
+    speed: HTMLDivElement;
+    level: HTMLDivElement;
+    collected: HTMLDivElement;
+    score: HTMLDivElement;
+    Game: Game;
+  }
+}
+
+type LeaderboardRow = {
+  flightDistance: number,
+  starsCollected: number,
+  date: number,
+}
 
 class Game {
   static isModeling = false; // debug mode
@@ -16,16 +36,18 @@ class Game {
   
   // world items
 
-  static world;
-  static viewport;
-  static camera;
-  static plane;
-  static planeShadow;
-  static terrainFar;
-  static terrainNear;
-  static stars = new Set();
-  static lastAddedStar;
-  static planeTrailPoints = [];
+  static world: World;
+  static viewport: Viewport;
+  static camera: Camera;
+
+  static plane: Plane;
+  static planeShadow: Light;
+  static terrainFar: Terrain;
+  static terrainNear: Terrain;
+  static stars = new Set<Star>();
+  static lastAddedStar?: Star;
+  static planeTrailPoints: [Point, Point][] = [];
+  static planeTooltip: Tooltip;
 
   // world constants
 
@@ -83,14 +105,14 @@ class Game {
 
   // animation promises
 
-  static levelAnimation;
-  static cameraAnimation;
+  static levelAnimation: Animate;
+  static cameraAnimation: Animate;
 
   /**
    * initialisation
    */
 
-  static async init() {
+  static async init(): Promise<void> {
     this.initWorldItems();
     this.initWorldLifecicle();
     this.initControls();
@@ -115,7 +137,7 @@ class Game {
     this.showIntroAnimation();
   }
 
-  static initWorldItems() {
+  static initWorldItems(): void {
     this.world = new World();
 
     // add camera
@@ -157,7 +179,7 @@ class Game {
       b: 49,
     }));
 
-    const altitudeMap = {};
+    const altitudeMap: AltitudeMap = {};
     for (const x in this.terrainFar.altitudeMap) {
       altitudeMap[x] = {};
       altitudeMap[x][this.pathHeight] = this.terrainFar.altitudeMap[x][0];
@@ -221,7 +243,7 @@ class Game {
     }));
   }
 
-  static initWorldLifecicle() {
+  static initWorldLifecicle(): void {
     this.viewport = new Viewport(this.camera, {
       canvas: window.canvas,
       scale: this.scale,
@@ -229,7 +251,7 @@ class Game {
       r: 41,
       g: 12,
       b: 29,
-      onbeforedraw: (frameTime) => {
+      onbeforedraw: (frameTime: number) => {
         this.movePlane(frameTime);
         this.moveTerrain(frameTime);
         this.moveStars(frameTime);
@@ -237,14 +259,14 @@ class Game {
         this.processStars();
         this.processScore(frameTime);
       },
-      onafterdraw: (frameTime) => {
+      onafterdraw: (frameTime: number) => {
         this.processPlainTrails(frameTime);
       },
     });
     this.viewport.play();
   }
 
-  static initControls() {
+  static initControls(): void {
     document.addEventListener('keydown', (ev) => {
       if (!this.isControlsAvailable) return;
 
@@ -271,16 +293,16 @@ class Game {
     });
   }
 
-  static initLeaderboard() {
+  static initLeaderboard(): void {
     window.leaderboard.innerHTML = '';
-    const fr = new DocumentFragment();
-    const leaderboard = this.loadLeaderboard();
-    leaderboard.sort((a, b) => b.flightDistance - a.flightDistance);
+    const fr = new DocumentFragment(),
+          leaderboard = this.loadLeaderboard();
+    leaderboard.sort((a: LeaderboardRow, b: LeaderboardRow) => b.flightDistance - a.flightDistance);
     for (const row of leaderboard) {
-      const li = document.createElement('li');
-      const date = new Date(row.date);
-      li.textContent = `${String(date.getDate()).padStart(2, 0)}.${String(date.getMonth() + 1).padStart(2, 0)}.${String(date.getFullYear()).slice(2)}` +
-        ` ${String(date.getHours()).padStart(2, 0)}:${String(date.getMinutes()).padStart(2, 0)}` +
+      const li = document.createElement('li'),
+            date = new Date(row.date);
+      li.textContent = `${String(date.getDate()).padStart(2, '0')}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getFullYear()).slice(2)}` +
+        ` ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}` +
         ` — ${Math.round(row.flightDistance)}m`;
       fr.appendChild(li);
     }
@@ -291,7 +313,7 @@ class Game {
    * menu and hud
    */
 
-  static async setCameraMode(isGame, time = 3500) {
+  static async setCameraMode(isGame: boolean, time: number = 3500): Promise<number> {
     if (this.cameraAnimation) {
       this.cameraAnimation.stop();
     }
@@ -300,27 +322,30 @@ class Game {
           to = isGame ? this.cameraGameCoords : this.cameraMenuCoords;
     
     this.cameraAnimation = new Animate((i) => {
-      for (const coord in from) {
-        this.camera[coord] = from[coord] + (to[coord] - from[coord]) * i;
-      }
+      this.camera.x = from.x + (to.x - from.x) * i;
+      this.camera.y = from.y + (to.y - from.y) * i;
+      this.camera.z = from.z + (to.z - from.z) * i;
+      this.camera.ax = from.ax + (to.ax - from.ax) * i;
+      this.camera.ay = from.ay + (to.ay - from.ay) * i;
+      this.camera.az = from.az + (to.az - from.az) * i;
     }, time, Animate.easeOutCubic);
     
     return this.cameraAnimation.start();
   }
 
-  static setMenuMode(isShown) {
+  static setMenuMode(isShown: boolean): void {
     document.body.classList[isShown ? 'remove' : 'add']('nomenu');
     document.body.classList[isShown ? 'remove' : 'add']('nocursor');
     document.body.classList[!isShown ? 'remove' : 'add']('nohud');
   }
 
-  static setGameoverMode(isGameOver) {
+  static setGameoverMode(isGameOver: boolean): void {
     document.body.classList[isGameOver ? 'add' : 'remove']('gameover');
   }
 
-  static async showIntroAnimation(time = 1500) {
+  static async showIntroAnimation(time: number = 1500): Promise<void> {
     await new Animate((i) => {
-      window.canvas.style.opacity = i;
+      window.canvas.style.opacity = String(i);
     }, time, Animate.easeOut).start();
   }
 
@@ -328,8 +353,8 @@ class Game {
    * process and move items
    */
 
-  static drawPlaneTrail(trail, step, planeTrailOpacity) {
-    for (const n in this.planeTrailPoints) {
+  static drawPlaneTrail(trail: number, step: number, planeTrailOpacity: number): void {
+    for (let n = 0; n < this.planeTrailPoints.length; n++) {
       const point = this.planeTrailPoints[n][trail];
       if (n) point.move(0, step, 0);
       const coords = this.camera.normalizeCoords(this.viewport, point.x, point.y, point.z);
@@ -352,7 +377,7 @@ class Game {
     }
   }
 
-  static processPlainTrails(frameTime) {
+  static processPlainTrails(frameTime: number): void {
     const FPS = 1000 / frameTime;
     const FPSDependantAcceleration = Math.log2(120 / FPS) + 1;
     const step = -this.planeSpeed * (frameTime / 1000) / FPSDependantAcceleration;
@@ -372,18 +397,16 @@ class Game {
     }
   }
 
-  static processStars() {
+  static processStars(): void {
     // detect collected and count missed
     for (const star of this.stars) {
       if (star.y < 0) {
         this.world.delete(star);
         this.stars.delete(star);
-        if (!star.collected) {
-          ++this.starsMissed;
-        }
+        if (!star.collected) this.starsMissed++;
       } else if (!star.collected && Geometry.dist(this.plane.x, this.plane.y, 0, star.x, star.y, 0) < this.plane.height / 2) {
         star.collected = true;
-        ++this.starsCollected;
+        this.starsCollected++;
 
         const from = star.z;
         new Animate((i) => {
@@ -414,16 +437,12 @@ class Game {
     }
   }
 
-  static moveStars(frameTime) {
+  static moveStars(frameTime: number): void {
     const step = -this.planeSpeed * frameTime / 1000;
-
-    for (const star of this.stars) {
-      star.move(0, step, 0);
-      star.rotate(star, 0, 0, 0.3);
-    }
+    for (const star of this.stars) star.move(0, step, 0).rotate(star, 0, 0, 0.3);
   }
 
-  static moveTerrain(frameTime) {
+  static moveTerrain(frameTime: number): void {
     const step = -this.planeSpeed * frameTime / 1000;
 
     if (this.terrainNear.y + this.pathHeight / 2 < 0) {
@@ -439,7 +458,7 @@ class Game {
     }
   }
 
-  static movePlane(frameTime) {
+  static movePlane(frameTime: number): void {
     const acceleration = this.planeSideAcceleration / (1000 / frameTime);
 
     if (this.isLeftArrowPressed) this.planeSideVelocity -= acceleration;
@@ -463,7 +482,7 @@ class Game {
     }
   }
 
-  static resetStars() {
+  static resetStars(): void {
     this.lastAddedStar = undefined;
     for (const star of this.stars) {
       this.world.delete(star);
@@ -471,7 +490,7 @@ class Game {
     }
   }
 
-  static resetPlane() {
+  static resetPlane(): void {
     this.planeSideVelocity = 0;
     this.plane.moveTo(this.planeGameCoords.x, this.planeGameCoords.y, this.planeGameCoords.z);
     this.plane.rotateTo(this.planeGameCoords.ax, this.planeGameCoords.ay, this.planeGameCoords.az);
@@ -484,7 +503,7 @@ class Game {
    * state
    */
 
-  static start() {
+  static start(): void {
     this.resetStars();
     this.resetPlane();
     this.flightDistance = 0;
@@ -497,7 +516,7 @@ class Game {
     this.setCameraMode(true);
   }
 
-  static finish() {
+  static finish(): void {
     this.isControlsAvailable = false;
     const place = this.saveLeaderboard();
     this.updateResults(place);
@@ -508,12 +527,12 @@ class Game {
     this.viewport.markers && this.viewport.markers.flush();
   }
 
-  static loadLeaderboard() {
+  static loadLeaderboard(): LeaderboardRow[] {
     const data = window.localStorage.getItem('leaderboard');
-    return JSON.parse(data) || [];
+    return data ? JSON.parse(data) : [];
   }
 
-  static updateResults(place) {
+  static updateResults(place: number): void {
     window.results.innerHTML = `
       ${place === 1 ? 'New record!' : (place > 10 ? 'Not even close!' : `Now the ${place} line is yours!`)}<br><br>
       Flight distance: ${Math.round(this.flightDistance)}m<br>
@@ -523,9 +542,9 @@ class Game {
     `;
   }
 
-  static saveLeaderboard() {
+  static saveLeaderboard(): number {
     const leaderboard = this.loadLeaderboard();
-    const newRow = {
+    const newRow: LeaderboardRow = {
       flightDistance: this.flightDistance,
       starsCollected: this.starsCollected,
       date: Date.now(),
@@ -547,7 +566,7 @@ class Game {
     return place;
   }
 
-  static processScore(frameTime) {
+  static processScore(frameTime: number): void {
     if (this.level == this.menuLevel) return;
 
     if (this.starsMissed >= this.starsMaxMissed) {
@@ -558,8 +577,8 @@ class Game {
     this.planeTooltip.setStarsEnabled(this.starsMaxMissed - this.starsMissed);
 
     const levelUp = this.getLevelStars(this.level);
-    window.speed.textContent = Math.round(this.planeSpeed);
-    window.level.textContent = this.level;
+    window.speed.textContent = String(Math.round(this.planeSpeed));
+    window.level.textContent = String(this.level);
     window.collected.innerHTML = this.starsCollected + ' / ' + (this.level === this.maxLevel ? '&infin;' : levelUp);
 
     if (this.level < this.maxLevel && this.starsCollected >= levelUp) {
@@ -569,20 +588,20 @@ class Game {
     // update hud score
     if (this.level !== this.menuLevel) {
       this.flightDistance += this.planeSpeed * frameTime / 1000;;
-      window.score.textContent = Math.round(this.flightDistance);
+      window.score.textContent = String(Math.round(this.flightDistance));
     }
   }
 
-  static getLevelSpeed(level) {
+  static getLevelSpeed(level: number): number {
     if (level === this.menuLevel) return this.planeMenuSpeed;
     return this.planeMinSpeed + (this.planeMaxSpeed - this.planeMinSpeed) * (1 / this.maxLevel * level);
   }
 
-  static getLevelStars(level) {
+  static getLevelStars(level: number): number {
     return 10 * ((level * (level - 1)) / 2 + 1);
   }
 
-  static async setLevel(level, time = 5000) {
+  static async setLevel(level: number, time: number = 5000): Promise<number> {
     if (this.levelAnimation) {
       this.levelAnimation.stop();
     }

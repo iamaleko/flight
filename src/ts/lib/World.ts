@@ -61,7 +61,7 @@ export class Camera extends Mesh {
   world: World;
   markers?: Markers;
 
-  constructor(world: World, opts: Record<string, number>) {
+  constructor(world: World, opts: Record<string, any>) {
     super(opts);
     
     this.vFOV = opts.vFOV ?? 65;

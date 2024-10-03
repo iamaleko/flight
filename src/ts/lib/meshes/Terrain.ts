@@ -2,12 +2,14 @@ import Mesh from "@lib/meshes/Mesh";
 import Point from "@lib/primitives/Point";
 import Polygon from "@lib/primitives/Polygon";
 
+export type AltitudeMap = Record<number, Record<number, number>>;
+
 export default class Terrain extends Mesh {
   size: number;
   width: number;
   height: number;
   altitude: number;
-  altitudeMap: Record<number, Record<number, number>>;
+  altitudeMap: AltitudeMap;
 
   constructor(opts: Record<string, any>) {
     super(opts);

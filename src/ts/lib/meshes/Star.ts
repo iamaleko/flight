@@ -4,6 +4,8 @@ import Point from "@lib/primitives/Point";
 import Polygon from "@lib/primitives/Polygon";
 
 export default class Star extends Mesh {
+  collected: boolean = false;
+
   constructor(opts: Record<string, number>) {
     super(opts);
 
