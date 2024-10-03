@@ -4,7 +4,7 @@ export type AnimationProgressFunction = (progress: number) => void;
 export default class Animate {
   private _animationFn: AnimationTimingFunction;
   private _progressFn: AnimationProgressFunction;
-  private _resolveFn?: (value: number) => void;
+  private _resolveFn?: (value: number) => void; 
 
   private _fps: number;
   private _timer?: ReturnType<typeof setInterval>;

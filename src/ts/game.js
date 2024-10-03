@@ -1,6 +1,11 @@
-import Geometry from "@lib/geometry.ts";
-import Animate from '@lib/animate.ts';
-import { Camera, Viewport, Light, Plane, Terrain, Star, Tooltip, World } from '@lib/world.js';
+import Geometry from "@lib/Geometry";
+import Animate from '@lib/Animate';
+import { Camera, Viewport, World } from '@lib/world.js';
+import Tooltip from '@lib/meshes/Tooltip';
+import Star from '@lib/meshes/Star';
+import Light from '@lib/primitives/Light';
+import Terrain from '@lib/meshes/Terrain';
+import Plane from '@lib/meshes/Plane';
 
 import '@css/game.css';
 
@@ -36,7 +41,7 @@ class Game {
   static cameraGameCoords = { x: 0, y: 0, z: -2, ax: 180, ay: 250, az: 180 };
   static planeGameCoords = { x: 0, y: 12, z: 2.8, ax: 0, ay: 0, az: 0 };
   static planeShadowGameCoords = { x: 0, y: this.planeGameCoords.y - 2, z: 3.4 };
-  static planeTooltipGameCoords = { x: 0, y: this.planeGameCoords.y - 1.5, z: this.planeGameCoords.z + 0.6, ax: 0, ay: -60, az: 0 };
+  static planeTooltipGameCoords = { x: 0, y: this.planeGameCoords.y - 1.6, z: this.planeGameCoords.z + 0.6, ax: 0, ay: -60, az: 0 };
 
   // plane constants
 
@@ -472,7 +477,7 @@ class Game {
     this.plane.rotateTo(this.planeGameCoords.ax, this.planeGameCoords.ay, this.planeGameCoords.az);
     this.planeShadow.moveTo(this.planeShadowGameCoords.x, this.planeShadowGameCoords.y, this.planeShadowGameCoords.z);
     this.planeTooltip.moveTo(this.planeTooltipGameCoords.x, this.planeTooltipGameCoords.y, this.planeTooltipGameCoords.z);
-    this.planeTooltip.setStarsCount(this.starsMaxMissed);
+    this.planeTooltip.setStarsEnabled(this.starsMaxMissed);
   }
 
   /**
@@ -550,7 +555,7 @@ class Game {
       return;
     }
 
-    this.planeTooltip.setStarsCount(this.starsMaxMissed - this.starsMissed);
+    this.planeTooltip.setStarsEnabled(this.starsMaxMissed - this.starsMissed);
 
     const levelUp = this.getLevelStars(this.level);
     window.speed.textContent = Math.round(this.planeSpeed);
