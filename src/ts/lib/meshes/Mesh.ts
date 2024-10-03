@@ -25,7 +25,7 @@ export default class Mesh extends Point {
     this.g = opts.g ?? 80;
     this.b = opts.b ?? 80;
     this.a = opts.a ?? 1;
-    this.m = opts.m;
+    this.m = opts.m ?? 1;
 
     this.polygons = [];
   }

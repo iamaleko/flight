@@ -1,6 +1,6 @@
 import Geometry from "@lib/Geometry";
 import Animate from '@lib/Animate';
-import { Camera, Viewport, World } from '@lib/world.js';
+import { Camera, Viewport, World } from '@lib/World';
 import Tooltip from '@lib/meshes/Tooltip';
 import Star from '@lib/meshes/Star';
 import Light from '@lib/primitives/Light';

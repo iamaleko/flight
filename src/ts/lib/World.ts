@@ -3,18 +3,37 @@ import Geometry from "@lib/Geometry";
 import Mesh from "@lib/meshes/Mesh";
 import Point from "@lib/primitives/Point";
 import Light from '@lib/primitives/Light';
+import Polygon from '@lib/primitives/Polygon';
+
+export type NormalizedPolygon = [
+  Polygon,
+  number, // distance from camera
+  number, // x1
+  number, // y1
+  number, // x2
+  number, // y2
+  number, // x3
+  number, // y3
+  number, // r
+  number, // g
+  number, // b
+  number, // a
+];
 
 export class World extends Point {
+  objects: Set<Mesh>;
+  lights: Set<Light>;
+  markers: Markers;
+
   constructor() {
     super(0, 0, 0);
 
     this.objects = new Set();
     this.lights = new Set();
-
     this.markers = new Markers();
   }
 
-  add(object) {
+  add(object: Mesh | Light): World {
     if (object instanceof Light) {
       this.lights.add(object);
       if (object.size) this.objects.add(object);
@@ -24,15 +43,25 @@ export class World extends Point {
     return this;
   }
 
-  delete(object) {
-    this.objects.delete(object);
-    this.lights.delete(object);
+  delete(object: Mesh | Light): World {
+    if (object instanceof Light) {
+      this.lights.delete(object);
+      if (object.size) this.objects.delete(object);
+    } else {
+      this.objects.delete(object);
+    }
     return this;
   }
 }
 
 export class Camera extends Mesh {
-  constructor(world, opts) {
+  vFOV: number;
+  hFOV: number;
+  dist: number;
+  world: World;
+  markers?: Markers;
+
+  constructor(world: World, opts: Record<string, number>) {
     super(opts);
     
     this.vFOV = opts.vFOV ?? 65;
@@ -42,7 +71,7 @@ export class Camera extends Mesh {
     this.markers = opts.profile ? this.world.markers : undefined;
   }
 
-  rotateFocused(point, ax = 0, ay = 0, az = 0) {
+  rotateFocused(point: Point, ax: number = 0, ay: number = 0, az: number = 0): Camera {
     if (ax || ay || az) {
       super.rotate(point, ax, ay, az);
       this.ax -= ax;
@@ -52,7 +81,7 @@ export class Camera extends Mesh {
     return this;
   }
 
-  #normalizePrepare(viewport) {
+  private _normalizePrepare(viewport: Viewport): number[] {
     const axRad = Geometry.deg2Rad(-this.ax),
           ayRad = Geometry.deg2Rad(-this.ay),
           azRad = Geometry.deg2Rad(-this.az),
@@ -74,12 +103,12 @@ export class Camera extends Mesh {
     ];
   }
 
-  normalizeCoords(viewport, x, y, z) {
-    const [halfWidth, halfHeight, axSin, axCos, aySin, ayCos, azSin, azCos, hRatio, vRatio] = this.#normalizePrepare(viewport);
-    const ds = Geometry.dist(x, y, z, this.x, this.y, this.z);
+  normalizeCoords(viewport: Viewport, x: number, y: number, z: number): [number, number] | false {
+    const [,, axSin, axCos, aySin, ayCos, azSin, azCos, hRatio, vRatio] = this._normalizePrepare(viewport),
+          ds = Geometry.dist(x, y, z, this.x, this.y, this.z);
 
     // far clipping
-    if (ds > this.dist) return;
+    if (ds > this.dist) return false;
 
     // move
     x -= this.x;
@@ -91,7 +120,7 @@ export class Camera extends Mesh {
     if (this.ay) [y, z] = [y * ayCos - z * aySin, y * aySin + z * ayCos];
 
     // near clipping (kind of)
-    if (z < 0) return;
+    if (z < 0) return false;
 
     // rotate az
     if (this.az) [x, y] = [x * azCos - y * azSin, x * azSin + y * azCos];
@@ -104,17 +133,17 @@ export class Camera extends Mesh {
     x = x * viewport.scale + viewport.width / 2;
     y = viewport.height - (y * viewport.scale + viewport.height / 2);
 
-    return [x, y, y > halfHeight || x > halfWidth || y < -halfHeight || x < -halfWidth];
+    return [x, y];
   }
 
-  normalizePolygons(viewport) {
+  normalizePolygons(viewport: Viewport): NormalizedPolygon[] {
     this.markers && this.markers.start('camera');
 
-    const [halfWidth, halfHeight, axSin, axCos, aySin, ayCos, azSin, azCos, hRatio, vRatio] = this.#normalizePrepare(viewport);
+    const [halfWidth, halfHeight, axSin, axCos, aySin, ayCos, azSin, azCos, hRatio, vRatio] = this._normalizePrepare(viewport);
 
     this.markers && this.markers.log('camera', 'prepare');
 
-    const normalized = [];
+    const normalized: NormalizedPolygon[] = [];
     for (const object of this.world.objects) {
       for (const polygon of object.polygons) {
         polygon.updateNormals();
@@ -207,13 +236,13 @@ export class Camera extends Mesh {
 
         this.markers && this.markers.log('camera', 'scale');
 
-        normalized.push([polygon, ds, x1, y1, x2, y2, x3, y3, 0, 0, 0, 0, ds]);
+        normalized.push([polygon, ds, x1, y1, x2, y2, x3, y3, 0, 0, 0, 0]);
       }
     }
 
     this.markers && this.markers.log('camera', 'normalize');
 
-    normalized.sort((a, b) => b[12] - a[12]);
+    normalized.sort((a, b) => b[1] - a[1]);
 
     this.markers && this.markers.log('camera', 'sort');
     this.markers && this.markers.stop('camera');
@@ -223,10 +252,26 @@ export class Camera extends Mesh {
 }
 
 export class Viewport {
-  #continue = false;
-  #ts = 0;
+  camera: Camera;
+  canvas: HTMLCanvasElement;
+  scale: number;
+  FPSLimit: number;
+  r: number;
+  g: number;
+  b: number;
+  markers?: Markers;
 
-  constructor(camera, opts) {
+  ctx!: CanvasRenderingContext2D;
+  width!: number;
+  height!: number;
+
+  onbeforedraw?: (frameTime: number) => {};
+  onafterdraw?: (frameTime: number) => {};
+
+  private _continue = false;
+  private _ts = 0;
+
+  constructor(camera: Camera, opts: Record<string, any>) {
     this.camera = camera;
     this.canvas = opts.canvas;
     this.scale = opts.scale ?? 1;
@@ -237,42 +282,48 @@ export class Viewport {
     this.g = opts.g ?? 255;
     this.b = opts.b ?? 255;
 
+    this.markers = opts.profile ? this.camera.world.markers : undefined;
+
     this.onbeforedraw = opts.onbeforedraw;
     this.onafterdraw = opts.onafterdraw;
 
-    this.markers = opts.profile ? this.camera.world.markers : undefined;
+    this.resize();
   }
 
-  play() {
-    this.#continue = true;
+  play(): Viewport {
+    this._continue = true;
     this.render();
+    return this;
   }
 
-  pause() {
-    this.#continue = false;
+  pause(): Viewport {
+    this._continue = false;
+    return this;
   }
 
-  toggle() {
-    this.#continue = !this.#continue;
+  toggle(): Viewport {
+    this._continue = !this._continue;
     this.render();
+    return this;
   }
 
-  resize() {
-    const dpr = window.devicePixelRatio;
-    const rect = canvas.getBoundingClientRect();
+  resize(): Viewport {
+    const dpr = window.devicePixelRatio,
+          rect = this.canvas.getBoundingClientRect();
 
     this.width = this.canvas.width = rect.width * dpr;
     this.height = this.canvas.height = rect.height * dpr;
-
-    this.ctx = this.canvas.getContext('2d', { alpha: false });
+    this.ctx = this.canvas.getContext('2d', { alpha: false })!;
+    return this;
   }
 
-  clear() {
+  clear(): Viewport {
     this.ctx.fillStyle = `rgb(${this.r} ${this.g} ${this.b})`;
     this.ctx.fillRect(0, 0, this.width, this.height);
+    return this;
   }
 
-  mixColor(r1, g1, b1, r2, g2, b2, amount) { 
+  mixColor(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number, amount: number): [number, number, number] { 
     return [
       Math.round(r1 * (1 - amount) + r2 * amount),
       Math.round(g1 * (1 - amount) + g2 * amount),
@@ -280,10 +331,9 @@ export class Viewport {
     ];
   }
 
-  lighting(normalizedPolygons) {
+  lighting(normalizedPolygons: NormalizedPolygon[]): Viewport {
     for (const data of normalizedPolygons) {
       const [polygon, ds] = data;
-
       let r, g, b, a;
 
       if (polygon.object instanceof Light) {
@@ -292,12 +342,12 @@ export class Viewport {
         b = polygon.object.b;
         a = 1;
       } else {
-        r = polygon.r ?? polygon.object.r ?? 80,
-        g = polygon.g ?? polygon.object.g ?? 80,
-        b = polygon.b ?? polygon.object.b ?? 80;
-        a = polygon.a ?? polygon.object.a ?? 1;
+        r = polygon.r ?? polygon.object.r,
+        g = polygon.g ?? polygon.object.g,
+        b = polygon.b ?? polygon.object.b;
+        a = polygon.a ?? polygon.object.a;
 
-        const m = polygon.m ?? polygon.object.m ?? 1; // mixing with lighting ratio
+        const m = polygon.m ?? polygon.object.m; // mixing with lighting ratio
 
         // apply light sources
         if (m > 0) {
@@ -318,9 +368,12 @@ export class Viewport {
               light.x, light.y, light.z,
             )) continue;
 
-            const angle = Geometry.angle(polygon.normA.x, polygon.normA.y, polygon.normA.z, polygon.normB.x, polygon.normB.y, polygon.normB.z, light.x, light.y, light.z);
+            const angle = Geometry.angle(
+              polygon.normA.x, polygon.normA.y, polygon.normA.z,
+              polygon.normB.x, polygon.normB.y, polygon.normB.z,
+              light.x, light.y, light.z
+            );
             const luminosity = (1 - angle / 90) * (1 - dist / light.d) * light.a * m;
-
             if (luminosity) [r, g, b] = this.mixColor(r, g, b, light.r, light.g, light.b, luminosity);
           }
         }
@@ -334,9 +387,10 @@ export class Viewport {
       data[10] = b;
       data[11] = a;
     }
+    return this;
   }
 
-  draw(normalizedPolygons) {
+  draw(normalizedPolygons: NormalizedPolygon[]): Viewport {
     this.clear();
     this.ctx.lineWidth = 1;
     for (let [,, x1, y1, x2, y2, x3, y3, r, g, b, a] of normalizedPolygons) {
@@ -350,18 +404,15 @@ export class Viewport {
       this.ctx.stroke();
       this.ctx.fill();
     }
+    return this;
   }
 
-  zBuffer(normalizedPolygons) {
-    
-  }
-
-  render() {
-    if (!this.#continue) return;
+  render(): void {
+    if (!this._continue) return;
 
     requestAnimationFrame((ts) => {
-      const frameTime = ts - this.#ts;
-      this.#ts = ts;
+      const frameTime = ts - this._ts;
+      this._ts = ts;
 
       this.markers && this.markers.start('viewport');
     
