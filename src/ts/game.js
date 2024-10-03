@@ -95,9 +95,7 @@ class Game {
     if (this.isStresstest) {
       await this.showIntroAnimation(0);
       await this.setCameraMode(true, 0);
-      setTimeout(() => {
-        this.viewport.markers && this.viewport.markers.flush();
-      }, 5000);
+      setTimeout(() => this.viewport.markers && this.viewport.markers.flush(), 5000);
       return;
     }
 

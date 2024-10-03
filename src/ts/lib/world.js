@@ -1,5 +1,5 @@
 import Geometry from "@lib/geometry.ts";
-import Markers from '@lib/markers.js';
+import Markers from '@lib/markers.ts';
 
 export class Point {
   constructor(x = 0, y = 0, z = 0) {
