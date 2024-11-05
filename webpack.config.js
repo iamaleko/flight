@@ -11,7 +11,7 @@ const config = {
   output: {
     path: path.resolve(__dirname, 'public'),
     filename: 'js/[name].bundle.js',
-    publicPath: '/',
+    publicPath: './',
     assetModuleFilename: (pathData) => {
       const filepath = path.dirname(pathData.filename).split("/").slice(1).join("/");
       return `${filepath}/[name].[hash][ext][query]`;
